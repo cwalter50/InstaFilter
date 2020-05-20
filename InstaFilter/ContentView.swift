@@ -17,11 +17,12 @@ struct ContentView: View {
     
     @State private var image: Image?
     
-    // certain filters have certain values to change. IE Spepia Tone changes the filter intensity, while pixelate works woth the scale... 
+    // certain filters have certain values to change. IE Spepia Tone changes the filter intensity, while pixelate works woth the scale...
     @State private var filterIntensity = 0.5
     @State private var radiusVal = 0.5
     @State private var scaleVal = 0.5
     
+    @State private var sliderText = "Intensity"
     
     @State private var showingImagePicker = false
     
@@ -60,10 +61,15 @@ struct ContentView: View {
         
         let inputKeys = currentFilter.inputKeys
         if inputKeys.contains(kCIInputIntensityKey) { currentFilter.setValue(filterIntensity, forKey: kCIInputIntensityKey)
+            sliderText = "Intensity"
             
         }
-        if inputKeys.contains(kCIInputRadiusKey) { currentFilter.setValue(radiusVal * 200, forKey: kCIInputRadiusKey) }
-        if inputKeys.contains(kCIInputScaleKey) { currentFilter.setValue(scaleVal * 10, forKey: kCIInputScaleKey) }
+        if inputKeys.contains(kCIInputRadiusKey) { currentFilter.setValue(filterIntensity * 200, forKey: kCIInputRadiusKey)
+            sliderText = "Radius"
+        }
+        if inputKeys.contains(kCIInputScaleKey) { currentFilter.setValue(filterIntensity * 10, forKey: kCIInputScaleKey)
+            sliderText = "Scale"
+        }
 
         guard let outputImage = currentFilter.outputImage else { return }
 
@@ -85,22 +91,7 @@ struct ContentView: View {
                 self.applyProcessing()
             }
         )
-        let radius = Binding<Double>(
-            get: {
-                self.radiusVal
-            }, set: {
-                self.radiusVal = $0
-                self.applyProcessing()
-            }
-        )
-        let scale = Binding<Double>(
-            get: {
-                self.scaleVal
-            }, set: {
-                self.scaleVal = $0
-                self.applyProcessing()
-            }
-        )
+       
         return NavigationView {
             VStack {
                 ZStack {
@@ -124,20 +115,9 @@ struct ContentView: View {
                 }
 
                 HStack {
-                    Text("Intensity")
+                    Text(sliderText)
                     Slider(value: intensity)
                 }.padding(.vertical)
-                
-                HStack {
-                    Text("Radius")
-                        Slider(value: radius)
-                }.padding(.vertical)
-                
-                HStack {
-                    Text("Scale")
-                        Slider(value: scale)
-                }.padding(.vertical)
-
 
                 HStack {
                     Button(filterName) {
