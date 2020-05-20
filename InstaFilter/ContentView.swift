@@ -13,16 +13,23 @@ import CoreImage.CIFilterBuiltins
 
 struct ContentView: View {
 
-    
+    @State private var filterName = "Sepia Tone"
     
     @State private var image: Image?
+    
+    // certain filters have certain values to change. IE Spepia Tone changes the filter intensity, while pixelate works woth the scale... 
     @State private var filterIntensity = 0.5
+    @State private var radiusVal = 0.5
+    @State private var scaleVal = 0.5
+    
     
     @State private var showingImagePicker = false
     
     @State private var inputImage: UIImage? // this is needed to get the image from UIimagePickerController because we havea Binding Property of uiimage...
     
     @State private var showingFilterSheet = false // for actionsheet to see possible filters to add.
+    
+    @State private var showingNoImageAlert = false // show error alert if there is no image when we try to save.
     
     // For CoreImage Filters
     @State private var currentFilter: CIFilter = CIFilter.sepiaTone()
@@ -52,9 +59,11 @@ struct ContentView: View {
 //        currentFilter.setValue(filterIntensity, forKey: kCIInputIntensityKey)
         
         let inputKeys = currentFilter.inputKeys
-        if inputKeys.contains(kCIInputIntensityKey) { currentFilter.setValue(filterIntensity, forKey: kCIInputIntensityKey) }
-        if inputKeys.contains(kCIInputRadiusKey) { currentFilter.setValue(filterIntensity * 200, forKey: kCIInputRadiusKey) }
-        if inputKeys.contains(kCIInputScaleKey) { currentFilter.setValue(filterIntensity * 10, forKey: kCIInputScaleKey) }
+        if inputKeys.contains(kCIInputIntensityKey) { currentFilter.setValue(filterIntensity, forKey: kCIInputIntensityKey)
+            
+        }
+        if inputKeys.contains(kCIInputRadiusKey) { currentFilter.setValue(radiusVal * 200, forKey: kCIInputRadiusKey) }
+        if inputKeys.contains(kCIInputScaleKey) { currentFilter.setValue(scaleVal * 10, forKey: kCIInputScaleKey) }
 
         guard let outputImage = currentFilter.outputImage else { return }
 
@@ -73,6 +82,22 @@ struct ContentView: View {
             },
             set: {
                 self.filterIntensity = $0
+                self.applyProcessing()
+            }
+        )
+        let radius = Binding<Double>(
+            get: {
+                self.radiusVal
+            }, set: {
+                self.radiusVal = $0
+                self.applyProcessing()
+            }
+        )
+        let scale = Binding<Double>(
+            get: {
+                self.scaleVal
+            }, set: {
+                self.scaleVal = $0
                 self.applyProcessing()
             }
         )
@@ -102,9 +127,20 @@ struct ContentView: View {
                     Text("Intensity")
                     Slider(value: intensity)
                 }.padding(.vertical)
+                
+                HStack {
+                    Text("Radius")
+                        Slider(value: radius)
+                }.padding(.vertical)
+                
+                HStack {
+                    Text("Scale")
+                        Slider(value: scale)
+                }.padding(.vertical)
+
 
                 HStack {
-                    Button("Change Filter") {
+                    Button(filterName) {
                         // change filter
                         self.showingFilterSheet = true
                     }
@@ -112,7 +148,9 @@ struct ContentView: View {
                     Spacer()
 
                     Button("Save") {
-                        guard let processedImage = self.processedImage else { return }
+                        guard let processedImage = self.processedImage else {
+                            self.showingNoImageAlert = true
+                            return }
                         
                         let imageSaver = ImageSaver()
 
@@ -121,6 +159,7 @@ struct ContentView: View {
                         }
 
                         imageSaver.errorHandler = {
+                            self.showingNoImageAlert = true
                             print("Oops: \($0.localizedDescription)")
                         }
 
@@ -136,15 +175,32 @@ struct ContentView: View {
             .actionSheet(isPresented: $showingFilterSheet) {
                 // action sheet here
                 ActionSheet(title: Text("Select a filter"), buttons: [
-                    .default(Text("Crystallize")) { self.setFilter(CIFilter.crystallize()) },
-                    .default(Text("Edges")) { self.setFilter(CIFilter.edges()) },
-                    .default(Text("Gaussian Blur")) { self.setFilter(CIFilter.gaussianBlur()) },
-                    .default(Text("Pixellate")) { self.setFilter(CIFilter.pixellate()) },
-                    .default(Text("Sepia Tone")) { self.setFilter(CIFilter.sepiaTone()) },
-                    .default(Text("Unsharp Mask")) { self.setFilter(CIFilter.unsharpMask()) },
-                    .default(Text("Vignette")) { self.setFilter(CIFilter.vignette()) },
+                    .default(Text("Crystallize")) {
+                        self.filterName = "Crystallize"
+                        self.setFilter(CIFilter.crystallize()) },
+                    .default(Text("Edges")) {
+                        self.filterName = "Edges"
+                        self.setFilter(CIFilter.edges()) },
+                    .default(Text("Gaussian Blur")) {
+                        self.filterName = "Gaussian Blur"
+                        self.setFilter(CIFilter.gaussianBlur()) },
+                    .default(Text("Pixellate")) {
+                        self.filterName = "Pixellate"
+                        self.setFilter(CIFilter.pixellate()) },
+                    .default(Text("Sepia Tone")) {
+                        self.filterName = "Sepia Tone"
+                        self.setFilter(CIFilter.sepiaTone()) },
+                    .default(Text("Unsharp Mask")) {
+                        self.filterName = "Unsharp Mask"
+                        self.setFilter(CIFilter.unsharpMask()) },
+                    .default(Text("Vignette")) {
+                        self.filterName = "Vignette"
+                        self.setFilter(CIFilter.vignette()) },
                     .cancel()
                 ])
+            }
+            .alert(isPresented: $showingNoImageAlert) {
+                Alert(title: Text("Error"), message: Text("No Image to save to photo album. Select an image first"), dismissButton: .default(Text("OK")))
             }
         }
     }
